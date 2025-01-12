@@ -169,6 +169,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   WhiteTilePrefab: {fileID: 6802732344537800827, guid: 060ba3b12d8c7dc4cb2cc6b8c5eb8e8a, type: 3}
   BlackTilePrefab: {fileID: 5223639033225209616, guid: 6aceacc3f650011459e021d7e6d0bd75, type: 3}
+  ChessPiecePrefab: {fileID: 4643923625560244251, guid: 6eeb1aeb81d670345894827a0016016c, type: 3}
 --- !u!1 &705507993
 GameObject:
   m_ObjectHideFlags: 0
