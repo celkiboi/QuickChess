@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using TMPro;
@@ -21,6 +22,12 @@ public class GameManager : MonoBehaviour
     TextMeshProUGUI whiteName;
     [SerializeField]
     TextMeshProUGUI turn;
+    [SerializeField]
+    TextMeshProUGUI blackTime;
+    [SerializeField]
+    TextMeshProUGUI whiteTime;
+    [SerializeField]
+    TextMeshProUGUI mainText;
 
     GameObject[] tiles;
     List<GameObject> chessPieces;
@@ -33,6 +40,15 @@ public class GameManager : MonoBehaviour
 
     readonly string yourTurn = "Your turn";
     readonly string opponentTurn = "Opponent turn";
+
+    bool isOnTurn = false;
+    bool isWhite = true;
+    bool hasEnded = false;
+    bool hasWon = false;
+    int whiteMinutesRemaining = 0;
+    int whiteSecondsRemaining = 5;
+    int blackMinutesRemaining = 0;
+    int blackSecondsRemaining = 5;
 
     void LoadConfig()
     {
@@ -62,7 +78,7 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    void Start()
+    public void Start()
     {
         LoadConfig();
 
@@ -173,16 +189,24 @@ public class GameManager : MonoBehaviour
         byte[] opponentNameBytes = await socket.ReceiveData();
         string opponentName = GetStringFromByteArray(opponentNameBytes);
 
+        mainText.gameObject.SetActive(false);
+        blackTime.gameObject.SetActive(true);
+        whiteTime.gameObject.SetActive(true);
+        blackName.gameObject.SetActive(true);
+        whiteName.gameObject.SetActive(true);
+
         socket.SendData(Encoding.UTF8.GetBytes("OK"));
 
         byte[] colorBytes = await socket.ReceiveData();
         Protocol communicationValue = ConvertFromByteArray(colorBytes);
+        isWhite = Protocol.startGameWhite == communicationValue;
 
-        Debug.Log(communicationValue);
+        blackName.text = (!isWhite) ? username : opponentName;
+        whiteName.text = (isWhite) ? username : opponentName;
+        turn.text = (isWhite) ? yourTurn : opponentTurn;
+        isOnTurn = isWhite;
 
-        blackName.text = (Protocol.startGameBlack == communicationValue) ? username : opponentName;
-        whiteName.text = (Protocol.startGameWhite == communicationValue) ? username : opponentName;
-        turn.text = (Protocol.startGameWhite == communicationValue) ? yourTurn : opponentTurn;
+        StartCoroutine(SubtractTime());
     }
 
     Protocol ConvertFromByteArray(byte[] info)
@@ -193,5 +217,78 @@ public class GameManager : MonoBehaviour
     string GetStringFromByteArray(byte[] info)
     {
         return Encoding.UTF8.GetString(info);
+    }
+
+    void UpdateTimer(bool isWhiteTimer)
+    {
+        if (isWhiteTimer)
+        {
+            if (whiteSecondsRemaining == 0)
+            {
+                whiteSecondsRemaining = 60;
+                whiteMinutesRemaining--;
+            }
+            whiteSecondsRemaining--;
+        }
+        else
+        {
+            if (blackSecondsRemaining == 0)
+            {
+                blackSecondsRemaining = 60;
+                blackMinutesRemaining--;
+            }
+            blackSecondsRemaining--;
+        }
+    }
+
+    IEnumerator SubtractTime()
+    {
+        while (true)
+        {
+            if (isOnTurn)
+            {
+                UpdateTimer(isWhite);
+            }
+            else
+            {
+                UpdateTimer(!isWhite);
+            }
+            yield return new WaitForSeconds(1);
+        }
+    }
+
+    public void Update()
+    {
+        if (hasEnded) 
+            return;
+
+        whiteTime.text = (whiteSecondsRemaining < 10)
+            ? $"{whiteMinutesRemaining}:0{whiteSecondsRemaining}"
+            : $"{whiteMinutesRemaining}:{whiteSecondsRemaining}";
+
+        blackTime.text = (blackSecondsRemaining < 10)
+            ? $"{blackMinutesRemaining}:0{blackSecondsRemaining}"
+            : $"{blackMinutesRemaining}:{blackSecondsRemaining}";
+
+        if (isWhite && whiteMinutesRemaining == 0 && whiteSecondsRemaining == 0)
+        {
+            socket.SendData(Protocol.endGame.ToBytes());
+            hasEnded = true;
+        }
+        if (!isWhite && blackMinutesRemaining == 0 && blackSecondsRemaining == 0)
+        {
+            socket.SendData(Protocol.endGame.ToBytes());
+            hasEnded = true;
+        }
+        if (hasEnded)
+        {
+            blackTime.gameObject.SetActive(false);
+            whiteTime.gameObject.SetActive(false);
+            blackName.gameObject.SetActive(false);
+            whiteName.gameObject.SetActive(false);
+            mainText.gameObject.SetActive(true);
+            mainText.text = (hasWon) ? "You won!" : "You lost!";
+        }
+
     }
 }

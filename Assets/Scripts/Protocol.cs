@@ -1,11 +1,8 @@
+using System;
+
 public enum Protocol
 {
-    /* SERVER TO CLIENT -> MOVE VALIDATION */
-    // the most significant bit is used to signal a valid/nonvalid move
-    legalMove = 32768, // 16 bit MSB 1000... LSB
-    illegalMove = 0, // 16 bit MSB 0100... LSB
-                     // server should also return the last move to the client so both can validate state
-
+    /* SERVER TO CLIENT */
     // signals used for starting the game
     startGameWhite = 0xFF00,
     startGameBlack = 0x00FF,
@@ -36,3 +33,15 @@ public enum Protocol
     whiteVictory = 49152,
     blackVictory = 16384
 };
+
+public static class ProtocolExtensions
+{
+    public static byte[] ToBytes(this Protocol protocol)
+    {
+        byte[] bytes = new byte[2];
+        bytes[0] = (byte)protocol;
+        bytes[1] = (byte)((UInt16)protocol >> 8);
+
+        return bytes;
+    }
+}
