@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -14,8 +15,15 @@ public class GameManager : MonoBehaviour
     GameObject[] tiles;
     List<GameObject> chessPieces;
 
+    Socket socket;
+
     void Start()
     {
+        socket = new();
+
+        socket.Connect("192.168.178.20", 5454);
+        socket.SendData("USERNAME");
+
         tiles = new GameObject[64];
         chessPieces = new();
 
@@ -110,4 +118,9 @@ public class GameManager : MonoBehaviour
         chessPieces[31].GetComponent<ChessPiece>().Activate(new BlackRook());
         chessPieces[31].transform.Translate(new(0, 0, -0.05f));
     }
+
+    //~GameManager()
+    //{
+    //    Socket.CleanupWinsock();
+    //}
 }
