@@ -1,6 +1,10 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
+using System.Text;
+using System.Threading.Tasks;
+using TMPro;
 using UnityEngine;
 
 public class GameManager : MonoBehaviour
@@ -11,18 +15,61 @@ public class GameManager : MonoBehaviour
     GameObject BlackTilePrefab;
     [SerializeField]
     GameObject ChessPiecePrefab;
+    [SerializeField]
+    TextMeshProUGUI blackName;
+    [SerializeField]
+    TextMeshProUGUI whiteName;
+    [SerializeField]
+    TextMeshProUGUI turn;
 
     GameObject[] tiles;
     List<GameObject> chessPieces;
 
     Socket socket;
 
+    private string username = "";
+    private string IP = "";
+    private int port = 0;
+
+    readonly string yourTurn = "Your turn";
+    readonly string opponentTurn = "Opponent turn";
+
+    void LoadConfig()
+    {
+        string filePath = Path.Combine(Application.dataPath, "../optcli.txt");
+
+        if (File.Exists(filePath))
+        {
+            try
+            {
+                string[] lines = File.ReadAllLines(filePath);
+
+                if (lines.Length >= 3)
+                {
+                    username = lines[0].Trim();
+                    IP = lines[1].Trim();
+                    port = int.Parse(lines[2].Trim());
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Error loading config file: {e.Message}");
+            }
+        }
+        else
+        {
+            Debug.LogError("Configuration file not found.");
+        }
+    }
+
     void Start()
     {
+        LoadConfig();
+
         socket = new();
 
-        socket.Connect("192.168.178.20", 5454);
-        socket.SendData("USERNAME");
+        socket.Connect(IP, port);
+        socket.SendData(Encoding.UTF8.GetBytes(username));
 
         tiles = new GameObject[64];
         chessPieces = new();
@@ -117,10 +164,34 @@ public class GameManager : MonoBehaviour
         chessPieces.Add(Instantiate(ChessPiecePrefab, tiles[63].transform.position, Quaternion.identity));
         chessPieces[31].GetComponent<ChessPiece>().Activate(new BlackRook());
         chessPieces[31].transform.Translate(new(0, 0, -0.05f));
+
+        PlayGame();
     }
 
-    //~GameManager()
-    //{
-    //    Socket.CleanupWinsock();
-    //}
+    async Task PlayGame()
+    {
+        byte[] opponentNameBytes = await socket.ReceiveData();
+        string opponentName = GetStringFromByteArray(opponentNameBytes);
+
+        socket.SendData(Encoding.UTF8.GetBytes("OK"));
+
+        byte[] colorBytes = await socket.ReceiveData();
+        Protocol communicationValue = ConvertFromByteArray(colorBytes);
+
+        Debug.Log(communicationValue);
+
+        blackName.text = (Protocol.startGameBlack == communicationValue) ? username : opponentName;
+        whiteName.text = (Protocol.startGameWhite == communicationValue) ? username : opponentName;
+        turn.text = (Protocol.startGameWhite == communicationValue) ? yourTurn : opponentTurn;
+    }
+
+    Protocol ConvertFromByteArray(byte[] info)
+    {
+        return (Protocol)((info[0] << 8) | info[1]);
+    }
+
+    string GetStringFromByteArray(byte[] info)
+    {
+        return Encoding.UTF8.GetString(info);
+    }
 }

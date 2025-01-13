@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading.Tasks;
+using System.Security.Cryptography;
 
 public class Socket
 {
@@ -19,7 +21,7 @@ public class Socket
     static extern int Connect(IntPtr socket, string ip, int port);
 
     [DllImport("SocketLibrary.dll", CallingConvention = CallingConvention.Cdecl)]
-    static extern int SendData(IntPtr socket, string data, int length);
+    static extern int SendData(IntPtr socket, byte[] data, int length);
 
     [DllImport("SocketLibrary.dll", CallingConvention = CallingConvention.Cdecl)]
     public static extern void CloseSocket(IntPtr socket);
@@ -46,19 +48,21 @@ public class Socket
 
     }
 
-    public int SendData(string data)
+    public int SendData(byte[] data)
     {
-        byte[] messageBytes = Encoding.UTF8.GetBytes(data);
-        int bytesSent = SendData(socket, data, messageBytes.Length);
+        int bytesSent = SendData(socket, data, data.Length);
 
         return bytesSent;
     }
 
-    public string ReceiveData(string data)
+    public async Task<byte[]> ReceiveData()
     {
         byte[] buffer = new byte[1024];
-        int bytesReceived = ReceiveData(socket, buffer, buffer.Length);
-        return Encoding.UTF8.GetString(buffer, 0, bytesReceived);
+        int bytesReceived = await Task.Run(() =>
+        {
+            return ReceiveData(socket, buffer, buffer.Length);
+        });
 
+        return buffer;
     }
 }
