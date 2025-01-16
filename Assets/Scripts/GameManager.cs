@@ -6,6 +6,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using TMPro;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class GameManager : MonoBehaviour
@@ -30,9 +31,10 @@ public class GameManager : MonoBehaviour
     TextMeshProUGUI mainText;
 
     GameObject[] tiles;
-    List<GameObject> chessPieces;
+    public static GameObject[] chessPieces;
 
     Socket socket;
+    static GameManager instance;
 
     private string username = "";
     private string IP = "";
@@ -43,12 +45,15 @@ public class GameManager : MonoBehaviour
 
     bool isOnTurn = false;
     bool isWhite = true;
+    ChessPieceType color;
     bool hasEnded = false;
     bool hasWon = false;
-    int whiteMinutesRemaining = 0;
+    int whiteMinutesRemaining = 1;
     int whiteSecondsRemaining = 5;
-    int blackMinutesRemaining = 0;
+    int blackMinutesRemaining = 1;
     int blackSecondsRemaining = 5;
+    int selectedIndex = -1;
+    int previousSelectedIndex = -1;
 
     void LoadConfig()
     {
@@ -80,6 +85,7 @@ public class GameManager : MonoBehaviour
 
     public void Start()
     {
+        instance = this;
         LoadConfig();
 
         socket = new();
@@ -88,7 +94,7 @@ public class GameManager : MonoBehaviour
         socket.SendData(Encoding.UTF8.GetBytes(username));
 
         tiles = new GameObject[64];
-        chessPieces = new();
+        chessPieces = new GameObject[64];
 
         for (int i = 0; i < 8; i++)
         {
@@ -99,87 +105,89 @@ public class GameManager : MonoBehaviour
 
                 GameObject tile = Instantiate(tilePrefab, position, Quaternion.identity);
 
-                tiles[i *  8 + j] = tile;
+                tiles[i * 8 + j] = tile;
             }
         }
 
-        chessPieces.Add(Instantiate(ChessPiecePrefab, tiles[0].transform.position, Quaternion.identity));
+        mainText.text = "Waiting for an opponent to join...";
+
+        chessPieces[0] = Instantiate(ChessPiecePrefab, tiles[0].transform.position, Quaternion.identity);
         chessPieces[0].GetComponent<ChessPiece>().Activate(new WhiteRook());
         chessPieces[0].transform.Translate(new(0, 0, -0.05f));
 
-        chessPieces.Add(Instantiate(ChessPiecePrefab, tiles[1].transform.position, Quaternion.identity));
+        chessPieces[1] = Instantiate(ChessPiecePrefab, tiles[1].transform.position, Quaternion.identity);
         chessPieces[1].GetComponent<ChessPiece>().Activate(new WhiteKnight());
         chessPieces[1].transform.Translate(new(0, 0, -0.05f));
 
-        chessPieces.Add(Instantiate(ChessPiecePrefab, tiles[2].transform.position, Quaternion.identity));
+        chessPieces[2] = Instantiate(ChessPiecePrefab, tiles[2].transform.position, Quaternion.identity);
         chessPieces[2].GetComponent<ChessPiece>().Activate(new WhiteBishop());
         chessPieces[2].transform.Translate(new(0, 0, -0.05f));
 
-        chessPieces.Add(Instantiate(ChessPiecePrefab, tiles[3].transform.position, Quaternion.identity));
+        chessPieces[3] = Instantiate(ChessPiecePrefab, tiles[3].transform.position, Quaternion.identity);
         chessPieces[3].GetComponent<ChessPiece>().Activate(new WhiteQueen());
         chessPieces[3].transform.Translate(new(0, 0, -0.05f));
 
-        chessPieces.Add(Instantiate(ChessPiecePrefab, tiles[4].transform.position, Quaternion.identity));
+        chessPieces[4] = Instantiate(ChessPiecePrefab, tiles[4].transform.position, Quaternion.identity);
         chessPieces[4].GetComponent<ChessPiece>().Activate(new WhiteKing());
         chessPieces[4].transform.Translate(new(0, 0, -0.05f));
 
-        chessPieces.Add(Instantiate(ChessPiecePrefab, tiles[5].transform.position, Quaternion.identity));
+        chessPieces[5] = Instantiate(ChessPiecePrefab, tiles[5].transform.position, Quaternion.identity);
         chessPieces[5].GetComponent<ChessPiece>().Activate(new WhiteBishop());
         chessPieces[5].transform.Translate(new(0, 0, -0.05f));
 
-        chessPieces.Add(Instantiate(ChessPiecePrefab, tiles[6].transform.position, Quaternion.identity));
+        chessPieces[6] = Instantiate(ChessPiecePrefab, tiles[6].transform.position, Quaternion.identity);
         chessPieces[6].GetComponent<ChessPiece>().Activate(new WhiteKnight());
         chessPieces[6].transform.Translate(new(0, 0, -0.05f));
 
-        chessPieces.Add(Instantiate(ChessPiecePrefab, tiles[7].transform.position, Quaternion.identity));
+        chessPieces[7] = Instantiate(ChessPiecePrefab, tiles[7].transform.position, Quaternion.identity);
         chessPieces[7].GetComponent<ChessPiece>().Activate(new WhiteRook());
         chessPieces[7].transform.Translate(new(0, 0, -0.05f));
 
         for (int i = 8; i < 16; i++)
         {
-            chessPieces.Add(Instantiate(ChessPiecePrefab, tiles[i].transform.position, Quaternion.identity));
+            chessPieces[i] = Instantiate(ChessPiecePrefab, tiles[i].transform.position, Quaternion.identity);
             chessPieces[i].GetComponent<ChessPiece>().Activate(new WhitePawn());
             chessPieces[i].transform.Translate(new(0, 0, -0.05f));
         }
 
-        for (int i = 16; i < 24; i++)
+        for (int i = 48; i < 56; i++)
         {
-            chessPieces.Add(Instantiate(ChessPiecePrefab, tiles[i + 32].transform.position, Quaternion.identity));
+            chessPieces[i] = Instantiate(ChessPiecePrefab, tiles[i].transform.position, Quaternion.identity);
             chessPieces[i].GetComponent<ChessPiece>().Activate(new BlackPawn());
             chessPieces[i].transform.Translate(new(0, 0, -0.05f));
         }
 
-        chessPieces.Add(Instantiate(ChessPiecePrefab, tiles[56].transform.position, Quaternion.identity));
-        chessPieces[24].GetComponent<ChessPiece>().Activate(new BlackRook());
-        chessPieces[24].transform.Translate(new(0, 0, -0.05f));
+        chessPieces[56] = Instantiate(ChessPiecePrefab, tiles[56].transform.position, Quaternion.identity);
+        chessPieces[56].GetComponent<ChessPiece>().Activate(new BlackRook());
+        chessPieces[56].transform.Translate(new(0, 0, -0.05f));
 
-        chessPieces.Add(Instantiate(ChessPiecePrefab, tiles[57].transform.position, Quaternion.identity));
-        chessPieces[25].GetComponent<ChessPiece>().Activate(new BlackKnight());
-        chessPieces[25].transform.Translate(new(0, 0, -0.05f));
+        chessPieces[57] = Instantiate(ChessPiecePrefab, tiles[57].transform.position, Quaternion.identity);
+        chessPieces[57].GetComponent<ChessPiece>().Activate(new BlackKnight());
+        chessPieces[57].transform.Translate(new(0, 0, -0.05f));
 
-        chessPieces.Add(Instantiate(ChessPiecePrefab, tiles[58].transform.position, Quaternion.identity));
-        chessPieces[26].GetComponent<ChessPiece>().Activate(new BlackBishop());
-        chessPieces[26].transform.Translate(new(0, 0, -0.05f));
+        chessPieces[58] = Instantiate(ChessPiecePrefab, tiles[58].transform.position, Quaternion.identity);
+        chessPieces[58].GetComponent<ChessPiece>().Activate(new BlackBishop());
+        chessPieces[58].transform.Translate(new(0, 0, -0.05f));
 
-        chessPieces.Add(Instantiate(ChessPiecePrefab, tiles[59].transform.position, Quaternion.identity));
-        chessPieces[27].GetComponent<ChessPiece>().Activate(new BlackQueen());
-        chessPieces[27].transform.Translate(new(0, 0, -0.05f));
+        chessPieces[59] = Instantiate(ChessPiecePrefab, tiles[59].transform.position, Quaternion.identity);
+        chessPieces[59].GetComponent<ChessPiece>().Activate(new BlackQueen());
+        chessPieces[59].transform.Translate(new(0, 0, -0.05f));
 
-        chessPieces.Add(Instantiate(ChessPiecePrefab, tiles[60].transform.position, Quaternion.identity));
-        chessPieces[28].GetComponent<ChessPiece>().Activate(new BlackKing());
-        chessPieces[28].transform.Translate(new(0, 0, -0.05f));
+        chessPieces[60] = Instantiate(ChessPiecePrefab, tiles[60].transform.position, Quaternion.identity);
+        chessPieces[60].GetComponent<ChessPiece>().Activate(new BlackKing());
+        chessPieces[60].transform.Translate(new(0, 0, -0.05f));
 
-        chessPieces.Add(Instantiate(ChessPiecePrefab, tiles[61].transform.position, Quaternion.identity));
-        chessPieces[29].GetComponent<ChessPiece>().Activate(new BlackBishop());
-        chessPieces[29].transform.Translate(new(0, 0, -0.05f));
+        chessPieces[61] = Instantiate(ChessPiecePrefab, tiles[61].transform.position, Quaternion.identity);
+        chessPieces[61].GetComponent<ChessPiece>().Activate(new BlackBishop());
+        chessPieces[61].transform.Translate(new(0, 0, -0.05f));
 
-        chessPieces.Add(Instantiate(ChessPiecePrefab, tiles[62].transform.position, Quaternion.identity));
-        chessPieces[30].GetComponent<ChessPiece>().Activate(new BlackKnight());
-        chessPieces[30].transform.Translate(new(0, 0, -0.05f));
+        chessPieces[62] = Instantiate(ChessPiecePrefab, tiles[62].transform.position, Quaternion.identity);
+        chessPieces[62].GetComponent<ChessPiece>().Activate(new BlackKnight());
+        chessPieces[62].transform.Translate(new(0, 0, -0.05f));
 
-        chessPieces.Add(Instantiate(ChessPiecePrefab, tiles[63].transform.position, Quaternion.identity));
-        chessPieces[31].GetComponent<ChessPiece>().Activate(new BlackRook());
-        chessPieces[31].transform.Translate(new(0, 0, -0.05f));
+        chessPieces[63] = Instantiate(ChessPiecePrefab, tiles[63].transform.position, Quaternion.identity);
+        chessPieces[63].GetComponent<ChessPiece>().Activate(new BlackRook());
+        chessPieces[63].transform.Translate(new(0, 0, -0.05f));
 
         PlayGame();
     }
@@ -205,6 +213,7 @@ public class GameManager : MonoBehaviour
         whiteName.text = (isWhite) ? username : opponentName;
         turn.text = (isWhite) ? yourTurn : opponentTurn;
         isOnTurn = isWhite;
+        color = (isWhite) ? ChessPieceType.white : ChessPieceType.black;
 
         StartCoroutine(SubtractTime());
     }
@@ -259,7 +268,7 @@ public class GameManager : MonoBehaviour
 
     public void Update()
     {
-        if (hasEnded) 
+        if (hasEnded)
             return;
 
         whiteTime.text = (whiteSecondsRemaining < 10)
@@ -290,5 +299,70 @@ public class GameManager : MonoBehaviour
             mainText.text = (hasWon) ? "You won!" : "You lost!";
         }
 
+        if (previousSelectedIndex != selectedIndex)
+            UnMarkAllTiles();
+
+        if (selectedIndex != -1 && selectedIndex != previousSelectedIndex 
+            && ((chessPieces[selectedIndex]?.GetComponent<ChessPiece>().piece.ChessPieceType
+            & color) != 0))
+        {
+            IEnumerable<int> availablePositions = chessPieces[selectedIndex]?
+                .GetComponent<ChessPiece>().piece.GetAvailablePositions();
+            
+            MarkTilesAsMovable(availablePositions);
+
+            previousSelectedIndex = selectedIndex;
+        }
+    }
+
+    private void UnMarkAllTiles()
+    {
+        for (int i = 0; i < tiles.Length; i++)
+        {
+            if (tiles[i] == null) continue;
+            tiles[i].GetComponent<Tile>().SetAsNormal();
+        }
+    }
+
+    private void MarkTilesAsMovable(IEnumerable<int> availablePositions)
+    {
+        if (availablePositions is null)
+            return;
+        foreach (int position in availablePositions)
+        {
+            tiles[position].GetComponent<Tile>().MarkAsMovable();
+        }
+    }
+
+    public static int GetPosition(IChessPiece piece)
+    {
+        for (int i = 0; i < chessPieces.Length; i++)
+        {
+            if (chessPieces[i] == null) continue;
+            if (piece == chessPieces[i].GetComponent<ChessPiece>().piece)
+                return i;
+        }
+
+        return -1;
+    }
+
+    void ChangePiecePosition(int start, int end)
+    {
+        chessPieces[end] = chessPieces[start];
+        chessPieces[start] = null;
+    }
+
+    public static void Clicked(GameObject tile)
+    {
+        Debug.Log("Clicked GameManager");
+        for(int i = 0; i < instance.tiles.Length; i++)
+        {
+            if (tile == instance.tiles[i])
+            {
+                instance.selectedIndex = i;
+                return;
+            }
+        }
+        instance.selectedIndex = -1;
     }
 }

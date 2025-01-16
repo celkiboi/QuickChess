@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+[System.Flags]
 public enum ChessPieceType
 {
     empty = 0,

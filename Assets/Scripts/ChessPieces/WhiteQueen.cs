@@ -7,13 +7,11 @@ using UnityEngine;
 
 public class WhiteQueen : IChessPiece
 {
-    public string CurrentLocation { get; set; }
-
-    public ChessPieceType ChessPieceType => ChessPieceType.white & ChessPieceType.queen;
+    public ChessPieceType ChessPieceType => ChessPieceType.white | ChessPieceType.queen;
 
     public Sprite Sprite => Resources.Load<Sprite>("SpriteImages/WhiteQueen");
 
-    public string[] GetAvailablePositions()
+    public IEnumerable<int> GetAvailablePositions()
     {
         throw new NotImplementedException();
     }

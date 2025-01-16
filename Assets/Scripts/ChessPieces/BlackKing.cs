@@ -7,13 +7,11 @@ using UnityEngine;
 
 public class BlackKing : IChessPiece
 {
-    public string CurrentLocation { get; set; }
-
-    public ChessPieceType ChessPieceType => ChessPieceType.black & ChessPieceType.king;
+    public ChessPieceType ChessPieceType => ChessPieceType.black | ChessPieceType.king;
 
     public Sprite Sprite => Resources.Load<Sprite>("SpriteImages/BlackKing");
 
-    public string[] GetAvailablePositions()
+    public IEnumerable<int> GetAvailablePositions()
     {
         throw new NotImplementedException();
     }

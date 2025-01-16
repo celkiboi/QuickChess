@@ -7,9 +7,7 @@ using UnityEngine;
 
 public interface IChessPiece
 {
-    public string CurrentLocation {  get; set; }
-
-    public string[] GetAvailablePositions();
+    public IEnumerable<int> GetAvailablePositions();
 
     ChessPieceType ChessPieceType { get; }
 
