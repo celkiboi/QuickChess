@@ -54,6 +54,7 @@ public class GameManager : MonoBehaviour
     int blackSecondsRemaining = 5;
     int selectedIndex = -1;
     int previousSelectedIndex = -1;
+    int selectedPieceIndex = -1;
 
     void LoadConfig()
     {
@@ -216,6 +217,18 @@ public class GameManager : MonoBehaviour
         color = (isWhite) ? ChessPieceType.white : ChessPieceType.black;
 
         StartCoroutine(SubtractTime());
+        ListenToEnemy();
+    }
+
+    async Task ListenToEnemy()
+    {
+        while(true)
+        {
+            byte[] data = await socket.ReceiveData();
+            Protocol info = ConvertFromByteArray(data);
+            ChangePiecePosition(info);
+            isOnTurn = true;
+        }
     }
 
     Protocol ConvertFromByteArray(byte[] info)
@@ -299,13 +312,24 @@ public class GameManager : MonoBehaviour
             mainText.text = (hasWon) ? "You won!" : "You lost!";
         }
 
-        if (previousSelectedIndex != selectedIndex)
-            UnMarkAllTiles();
+        if (!isOnTurn)
+            return;
+
+        if (selectedIndex != -1 && selectedIndex != previousSelectedIndex 
+            && tiles[selectedIndex].GetComponent<Tile>().IsMovable)
+        {
+            ChangePiecePosition(selectedPieceIndex, selectedIndex);
+            SendMoveInfo(selectedPieceIndex, selectedIndex);
+            selectedPieceIndex = -1;
+            selectedIndex = -1;
+            isOnTurn = false;
+        }
 
         if (selectedIndex != -1 && selectedIndex != previousSelectedIndex 
             && ((chessPieces[selectedIndex]?.GetComponent<ChessPiece>().piece.ChessPieceType
             & color) != 0))
         {
+            UnMarkAllTiles();
             IEnumerable<int> availablePositions = chessPieces[selectedIndex]?
                 .GetComponent<ChessPiece>().piece.GetAvailablePositions();
             
@@ -313,6 +337,9 @@ public class GameManager : MonoBehaviour
 
             previousSelectedIndex = selectedIndex;
         }
+
+        if (previousSelectedIndex != selectedIndex)
+            UnMarkAllTiles();
     }
 
     private void UnMarkAllTiles()
@@ -348,21 +375,52 @@ public class GameManager : MonoBehaviour
 
     void ChangePiecePosition(int start, int end)
     {
+        if (chessPieces[end] != null)
+        {
+            Destroy(chessPieces[end]);
+        }
+
         chessPieces[end] = chessPieces[start];
         chessPieces[start] = null;
+        chessPieces[end].transform.position = tiles[end].transform.position;
+        chessPieces[end].transform.Translate(new(0, 0, -0.05f));
+    }
+
+    void ChangePiecePosition(Protocol info)
+    {
+        int start = (int)(info & Protocol.startPosition);
+        int end = (int)((Protocol)info & Protocol.endPosition) >> 6;
+        ChangePiecePosition(start, end);
     }
 
     public static void Clicked(GameObject tile)
     {
-        Debug.Log("Clicked GameManager");
         for(int i = 0; i < instance.tiles.Length; i++)
         {
             if (tile == instance.tiles[i])
             {
                 instance.selectedIndex = i;
+                // if the selected tile had a piece of the same color, mark it as a selected piece
+                // not doing the color check means that "capturing" opponent pieces bugs the game
+                if (chessPieces[instance.selectedIndex] != null &&
+                    (chessPieces[instance.selectedIndex].GetComponent<ChessPiece>().piece
+                    .ChessPieceType & instance.color) == instance.color)
+                    instance.selectedPieceIndex = i;
                 return;
             }
         }
         instance.selectedIndex = -1;
+    }
+
+    void SendMoveInfo(int start, int end)
+    {
+        Protocol info = Protocol.startPosition & (Protocol)start;
+        info = info | (Protocol.endPosition & ((Protocol)(end << 6)));
+
+        byte[] data = new byte[2];
+        data[0] = (byte)info;
+        data[1] = (byte)((int)info >> 8);
+
+        socket.SendData(data);
     }
 }
