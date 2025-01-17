@@ -48,9 +48,9 @@ public class GameManager : MonoBehaviour
     ChessPieceType color;
     bool hasEnded = false;
     bool hasWon = false;
-    int whiteMinutesRemaining = 1;
+    int whiteMinutesRemaining = 5;
     int whiteSecondsRemaining = 5;
-    int blackMinutesRemaining = 1;
+    int blackMinutesRemaining = 5;
     int blackSecondsRemaining = 5;
     int selectedIndex = -1;
     int previousSelectedIndex = -1;
