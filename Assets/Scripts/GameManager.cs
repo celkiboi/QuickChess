@@ -375,10 +375,59 @@ public class GameManager : MonoBehaviour
 
     void ChangePiecePosition(int start, int end)
     {
+        // case: capture
         if (chessPieces[end] != null)
         {
             Destroy(chessPieces[end]);
         }
+
+        int height = start / 8;
+        // Case: forward en passants (by a white)
+        if (height == 4)
+        {
+            // Case: en passant left-up (by a white)
+            if (start - 1 >= 0 && start - 1 < chessPieces.Length
+                && chessPieces[start] != null && chessPieces[start - 1] != null
+                && (chessPieces[start].GetComponent<ChessPiece>().piece.ChessPieceType == (ChessPieceType.white | ChessPieceType.pawn)) // is a white pawn
+                && (chessPieces[start - 1].GetComponent<ChessPiece>().piece.ChessPieceType == (ChessPieceType.black | ChessPieceType.pawn)) // is a black pawn
+                && (end - start == 7)) // has moved forward left
+            {
+                Destroy(chessPieces[start - 1]);
+            }
+            // Case: en passant right-up (by a white)
+            else if (start + 1 >= 0 && start + 1 < chessPieces.Length
+                && chessPieces[start] != null && chessPieces[start + 1] != null
+                && (chessPieces[start].GetComponent<ChessPiece>().piece.ChessPieceType == (ChessPieceType.white | ChessPieceType.pawn)) // is a white pawn
+                && (chessPieces[start + 1].GetComponent<ChessPiece>().piece.ChessPieceType == (ChessPieceType.black | ChessPieceType.pawn)) // is a black pawn
+                && (end - start == 9)) // has moved forward right
+            {
+                Destroy(chessPieces[start + 1]);
+            }
+        }
+        // Case: backwards en passants (by a black)
+        else if (height == 3)
+        {
+            // Case: en passant left-down (by a black)
+            if (start - 1 >= 0 && start - 1 < chessPieces.Length
+                && chessPieces[start] != null && chessPieces[start - 1] != null
+                && (chessPieces[start].GetComponent<ChessPiece>().piece.ChessPieceType == (ChessPieceType.black | ChessPieceType.pawn)) // is a black pawn
+                && (chessPieces[start - 1].GetComponent<ChessPiece>().piece.ChessPieceType == (ChessPieceType.white | ChessPieceType.pawn)) // is a white pawn
+                && (start - end == 9)) // has moved backwards left
+            {
+                Destroy(chessPieces[start - 1]);
+            }
+            // Case: en passant right-down (by a black)
+            else if (start + 1 >= 0 && start + 1 < chessPieces.Length
+                && chessPieces[start] != null && chessPieces[start + 1] != null
+                && (chessPieces[start].GetComponent<ChessPiece>().piece.ChessPieceType == (ChessPieceType.black | ChessPieceType.pawn)) // is a black pawn
+                && (chessPieces[start + 1].GetComponent<ChessPiece>().piece.ChessPieceType == (ChessPieceType.white | ChessPieceType.pawn)) // is a white pawn
+                && (start - end == 7)) // has moved backwards right
+            {
+                Destroy(chessPieces[start + 1]);
+            }
+        }
+
+
 
         chessPieces[end] = chessPieces[start];
         chessPieces[start] = null;

@@ -46,7 +46,7 @@ public class BlackPawn : IChessPiece
                 availablePositions.Add((height - 1) * 8 + width - 1);
         }
         // case: en passant left
-        if (height > 0 && width > 0 && GameManager.chessPieces[(height) * 8 + width - 1] != null
+        if (height == 3 && width > 0 && GameManager.chessPieces[(height) * 8 + width - 1] != null
             && GameManager.chessPieces[(height - 1) * 8 + width - 1] == null)
         {
             if ((GameManager.chessPieces[(height) * 8 + width - 1].GetComponent<ChessPiece>().piece.ChessPieceType
@@ -54,7 +54,7 @@ public class BlackPawn : IChessPiece
                 availablePositions.Add((height - 1) * 8 + width - 1);
         }
         // case: en passant right
-        if (height > 0 && width < 7 && GameManager.chessPieces[(height) * 8 + width + 1] != null
+        if (height == 3 && width < 7 && GameManager.chessPieces[(height) * 8 + width + 1] != null
             && GameManager.chessPieces[(height - 1) * 8 + width + 1] == null)
         {
             if ((GameManager.chessPieces[(height) * 8 + width + 1].GetComponent<ChessPiece>().piece.ChessPieceType
